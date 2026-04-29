@@ -9,72 +9,73 @@ To write a program to predict the price of the house and number of occupants in 
 
 ## Algorithm
 ```
-1.Load the dataset from a CSV file and separate the features and target variable, encoding any categorical variables as needed.
-2.Scale the features using a standard scaler to normalize the data.
-3.Initialize model parameters (theta) and add an intercept term to the feature set.
-4.Train the linear regression model using gradient descent by iterating through a specified number of iterations to minimize the cost function.
-5.Make predictions on new data by transforming it using the same scaling and encoding applied to the training data.
+1.Data Preparation: Load the California housing dataset, extract features (first three columns) and targets (target variable and sixth column), and split the data into training and testing sets.
+2.Data Scaling: Standardize the feature and target data using StandardScaler to enhance model performance.
+3.Model Training: Create a multi-output regression model with SGDRegressor and fit it to the training data.
+4.Prediction and Evaluation: Predict values for the test set using the trained model, calculate the mean squared error, and print the predictions along with the squared error.
 ```
-
 ## Program:
 ```
 /*
 Program to implement the multivariate linear regression model for predicting the price of the house and number of occupants in the house with SGD regressor.
-Developed by: 
-RegisterNumber:  
+Developed by: Prahathieswaran S
+RegisterNumber: 212225240107
 */
 ```
-
 ```
 import numpy as np
-import pandas as pd
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+from sklearn.datasets import fetch_california_housing
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import SGDRegressor
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
-def linear_regression(X, y, iters=1000, learning_rate=0.01):
-    X = np.hstack((np.ones((X.shape[0], 1)), X))  # Add intercept term
-    theta = np.zeros((X.shape[1], 1))
+data = fetch_california_housing()
 
-    for _ in range(iters):
-        predictions = X.dot(theta)
-        errors = predictions - y.reshape(-1, 1)
-        gradient = (1 / X.shape[0]) * X.T.dot(errors)
-        theta -= learning_rate * gradient
+X = data.data[:, [0, 1, 2, 5, 7]]  # Features: MedInc, HouseAge, AveRooms, AveOccup, Population
+y = np.column_stack((data.target, data.data[:, 5]))  # Target: House Price, Occupancy
 
-    return theta
-
-data = pd.read_csv('50_Startups.csv', header=0)
-
-X = data.iloc[:, :-1].values
-y = data.iloc[:, -1].values
-
-ct = ColumnTransformer(transformers=[
-    ('encoder', OneHotEncoder(), [3])
-], remainder='passthrough')
-
-X = ct.fit_transform(X)
-
-y = y.astype(float)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-theta = linear_regression(X_scaled, y, iters=1000, learning_rate=0.01)
+sgd = SGDRegressor(max_iter=1000, tol=1e-3)
+multi_output_sgd = MultiOutputRegressor(sgd)
+multi_output_sgd.fit(X_train_scaled, y_train)
 
-new_data = np.array([165349.2, 136897.8, 471784.1, 'New York']).reshape(1, -1)  # Example new data
-new_data_scaled = scaler.transform(ct.transform(new_data))
+y_pred = multi_output_sgd.predict(X_test_scaled)
 
-new_prediction = np.dot(np.append(1, new_data_scaled), theta)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
 
-print(f"Predicted value: {new_prediction[0]}")
-data.head()
+print(f"Mean Squared Error: {mse:.2f}")
+print(f"R² Score: {r2:.2f}")
+
+r2_house_price = r2_score(y_test[:, 0], y_pred[:, 0])
+r2_occupancy = r2_score(y_test[:, 1], y_pred[:, 1])
+
+print(f"R² for House Price: {r2_house_price:.2f}")
+print(f"R² for Occupancy: {r2_occupancy:.2f}")
 
 ```
 
-## Output:
 
-<img width="1094" height="273" alt="image" src="https://github.com/user-attachments/assets/b214ba7d-8047-46b0-80e9-6e12f4c35130" />
+
+## Output:
+```Predictions:
+ [[ 1.10294192, 35.91524355],
+ [ 1.51829697, 35.80348534],
+ [ 2.2781599 , 35.71878728],
+ ...,
+ [ 4.31784449, 35.02074527],
+ [ 1.70545882, 35.76972047],
+ [ 1.81947425, 35.71433187]]
+Squared Error: 2.6030095425883086
+```
+
 
 
 ## Result:
